@@ -42,6 +42,7 @@ def id2act(act_id):
 def load_raw_data(path):
     df = pd.read_csv(path, sep=' ', header=None)
     df.columns = columns
+    df = df.fillna(method='ffill')
     return df
 
 def seek_sensor_data(seq_df):
@@ -57,7 +58,7 @@ def seek_sensor_data(seq_df):
     
     return segments
 
-def framing(segments, frame_size=256, activities=[1, 2, 3, 4, 5], attributes=['acc1'], positions=['chest'], axes=['x', 'y', 'z']):
+def framing(segments, frame_size=256, activities=[1, 2, 3, 4, 5], attributes=['acc1'], positions=['chest'], axes=['x', 'y', 'z'], preprocesses=[]):
     frame_list = []
     label_list = []
     columns = []
@@ -81,9 +82,14 @@ def framing(segments, frame_size=256, activities=[1, 2, 3, 4, 5], attributes=['a
         seg = seg[columns]
         class_id = act2cid[label]
 
+        seg = np.array(seg)
+        for preprocess in preprocesses:
+            seg = preprocess(seg)
+
         frames = []
         for i in range(0, len(seg)-frame_size, frame_size):
-            frames += [np.array(seg.iloc[i:i+frame_size])[np.newaxis, ...]]
+            # frames += [np.array(seg.iloc[i:i+frame_size])[np.newaxis, ...]]
+            frames += [seg[i:i+frame_size][np.newaxis, ...]]
         frames = np.concatenate(frames)
         labels = np.array([class_id for _ in range(len(frames))])
 
@@ -131,7 +137,7 @@ class PAMAP2:
 
         self.is_loaded_raw_data = True
     
-    def framing(self, frame_size=256, persons=None, activities=[1, 2, 3, 4, 5], attributes=['acc1'], positions=['chest'], axes=['x', 'y', 'z']):
+    def framing(self, frame_size=256, persons=None, activities=[1, 2, 3, 4, 5], attributes=['acc1'], positions=['chest'], axes=['x', 'y', 'z'], preprocesses=[]):
         if not self.is_loaded_raw_data:
             self.load()
         
@@ -143,7 +149,7 @@ class PAMAP2:
         person_label_list = []
         pid2name = {}
         for num, person in enumerate(persons):
-            frames, labels, cid2act = framing(self.segments[person], frame_size, activities, attributes, positions, axes)
+            frames, labels, cid2act = framing(self.segments[person], frame_size, activities, attributes, positions, axes, preprocesses)
             person_labels =  np.array([num for _ in range(len(frames))])
             pid2name[num] = person
             frame_list += [frames]
@@ -160,11 +166,18 @@ if __name__ == '__main__':
     ds_path = Path('path/to/dataset')
     pamap2 = PAMAP2(ds_path, cache_dir=Path('./'))
     pamap2.load()
+
+    from preprocessing import lpf, hpf, bpf
+    low_pass_filter_fn = lambda x: lpf(x, 10, 100)
+    high_pass_filter_fn = lambda x: hpf(x, 10, 100)
+
     params = {
         'frame_size': 256,
         'activities': [1, 2, 3, 4, 5],
         'attributes': ['acc1'],
         'positions': ['chest'],
         'axes': ['x', 'y', 'z'], 
+        'preprocesses': [low_pass_filter_fn],
     }
+
     frames, labels, person_labels, cid2act, pid2name = pamap2.framing(**params)

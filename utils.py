@@ -196,7 +196,7 @@ class PAMAP2:
     
 
 if __name__ == '__main__':
-    ds_path = Path('./path/to/dataset/')
+    ds_path = Path('path/to/dataset')
     pamap2 = PAMAP2(ds_path, cache_dir=Path('./'))
     pamap2.load()
 

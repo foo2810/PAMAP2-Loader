@@ -3,6 +3,7 @@ import pandas as pd
 
 import pickle
 from pathlib import Path
+from typing import Union, Optional
 
 __all__ = ['load_raw_data', 'seek_sensor_data', 'framing'] + ['attributes', 'positions', 'axes', 'persons', 'activities', 'columns']
 
@@ -106,7 +107,7 @@ def framing(segments, frame_size=256, activities=[1, 2, 3, 4, 5], attributes=['a
 
 
 class PAMAP2:
-    def __init__(self, dataset_path, cache_dir=Path('./')):
+    def __init__(self, dataset_path:Union[str,Path], cache_dir:Union[str,Path]=Path('./')):
         if type(dataset_path) is str:
             dataset_path = Path(dataset_path)
         if type(cache_dir) is str:
@@ -137,7 +138,39 @@ class PAMAP2:
 
         self.is_loaded_raw_data = True
     
-    def framing(self, frame_size=256, persons=None, activities=[1, 2, 3, 4, 5], attributes=['acc1'], positions=['chest'], axes=['x', 'y', 'z'], preprocesses=[]):
+    def framing(self, frame_size:int=256, persons:Optional[list]=None, activities:list=[1, 2, 3, 4, 5], attributes:list=['acc1'], positions:list=['chest'], axes:list=['x', 'y', 'z'], preprocesses:list=[]) -> tuple:
+        """行動データのフレーム分けを行う
+
+        Parameters
+        ----------
+        frame_size: int
+            data width to split.
+        persons: Option[list]
+            frames were made from people in this list.
+        activities:
+            frames were made from activities in this list.
+        attributes:
+            frames were made from attributes in this list.
+        positions:
+            frames were made from positions in this list.
+        axes:
+            frames were made from axes in this list.
+        preprocesses:
+            a list of preprocessing functions.
+
+        Returns
+        -------
+        frame_list:
+            splited sensor frame data
+        act_label_list:
+            activities label list
+        person_label_list:
+            person label list
+        cid2act:
+            dictionary (key is id, value is activity string)
+        pid2name:
+            dictionary (key is id, value is person name)
+        """
         if not self.is_loaded_raw_data:
             self.load()
         

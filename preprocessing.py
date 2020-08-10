@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Tuple
 import numpy as np
 from scipy.fftpack import fft, ifft
 from scipy import signal
@@ -63,7 +63,7 @@ def hpf(y:np.ndarray, fpass:int, fs:int) -> np.ndarray:
 
 
 
-def bpf(y:np.ndarray, fpass:Sequence[int, int], fs:int) -> np.ndarray:
+def bpf(y:np.ndarray, fpass:Sequence[Tuple[int, int]], fs:int) -> np.ndarray:
     """filter function on data
 
     Parameters

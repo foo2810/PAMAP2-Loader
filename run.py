@@ -1,46 +1,21 @@
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
-
-import pickle
-
 from utils import *
+from preprocessing import lpf, hpf, bpf
 
-fpath_base = Path('../PAMAP2_Dataset/Protocol/')
+ds_path = Path('../PAMAP2_Dataset/Protocol/')
+pamap2 = PAMAP2(ds_path, cache_dir=Path('./'))
+pamap2.load()
 
-for person in persons:
-    fpath = fpath_base / (person + '.dat')
-    print(fpath)
+# low_pass_filter_fn = lambda x: lpf(x, 10, 100)
+# high_pass_filter_fn = lambda x: hpf(x, 10, 100)
 
-    df = load_raw_data(str(fpath))
-    df.to_csv('pamap2_{}.csv'.format(person))
+params = {
+    'frame_size': 256,
+    'activities': [1, 2, 3, 4, 5],
+    'attributes': ['acc1'],
+    'positions': ['chest'],
+    'axes': ['x', 'y', 'z'], 
+    'preprocesses': [low_pass_filter_fn],
+}
 
-    segments = seek_sensor_data(df)
-    # with open('segments_{}.pkl'.format(person), 'rb') as fp:
-    #     segments = pickle.load(fp)
-
-    # Check segments
-    flg = False
-    for seg in segments:
-        label = seg['activity_id'].iloc[0]
-        for i in range(len(seg)):
-            if seg['activity_id'].iloc[i] != label:
-                print(' >>> Miss: {} - {}'.format(label, seg['activity_id'].iloc[i]))
-                flg = True
-                break
-    if not flg:
-        print('Segmentation: OK')
-
-    with open('segments_{}.pkl'.format(person), 'wb') as fp:
-        pickle.dump(segments, fp, protocol=4)
-
-    # Make sliding-window
-    frames, labels = framing(segments, frame_size=256)
-
-    print('frames: {}'.format(frames.shape))
-    print('labels: {}'.format(labels.shape))
-
-    with open('frames_{}.pkl'.format(person)) as fp:
-        pickle.dump(frames, fp, protocol=4)
-
+frames, labels, person_labels, cid2act, pid2name = pamap2.framing(**params)

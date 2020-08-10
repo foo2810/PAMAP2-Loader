@@ -5,19 +5,19 @@ import pickle
 from pathlib import Path
 from typing import Union, Optional
 
-__all__ = ['load_raw_data', 'seek_sensor_data', 'framing'] + ['attributes', 'positions', 'axes', 'persons', 'activities', 'columns']
+__all__ = ['PAMAP2'] + ['load_raw_data', 'seek_sensor_data', 'framing'] + ['ATTRIBUTES', 'POSITIONS', 'AXES', 'PERSONS', 'ACTIVITIES', 'columns']
 
-attributes = ['temperature', 'acc1', 'acc2', 'gyro', 'mag']
-positions = ['hand', 'chest', 'ankle']
-axes = ['x', 'y', 'z']
+ATTRIBUTES = ['temperature', 'acc1', 'acc2', 'gyro', 'mag']
+POSITIONS = ['hand', 'chest', 'ankle']
+AXES = ['x', 'y', 'z']
 
-persons = [
+PERSONS = [
     'subject101', 'subject102', 'subject103',
     'subject104', 'subject105', 'subject106',
     'subject107', 'subject108', #'subject109',
 ]
 
-activities = {
+ACTIVITIES = {
     1: 'lying', 2: 'sitting', 3: 'standing', 4: 'walking', 5: 'running',
     7: 'cycling', 8: 'nordic_walking', 9: 'watching_TV', 10: 'computer_work',
     11: 'car_driving', 12: 'ascending stairs', 13: 'descending stairs',
@@ -28,17 +28,17 @@ activities = {
 }
 
 columns = ['timestamp(s)', 'activity_id', 'heart_rate(bpm)']
-for pos in positions:
-    columns += ['IMU_{}_{}'.format(pos, attributes[0])]
-    for attr in attributes[1:]:
-        for axis in axes:
+for pos in POSITIONS:
+    columns += ['IMU_{}_{}'.format(pos, ATTRIBUTES[0])]
+    for attr in ATTRIBUTES[1:]:
+        for axis in AXES:
             col = 'IMU_{}_{}_{}'.format(pos, attr, axis)
             columns += [col]
     columns += ['IMU_{}_orientation'.format(pos) for _ in range(4)]
 
 def id2act(act_id):
-    global activities
-    return activities[act_id]
+    global ACTIVITIES
+    return ACTIVITIES[act_id]
 
 def load_raw_data(path):
     df = pd.read_csv(path, sep=' ', header=None)
@@ -120,7 +120,8 @@ class PAMAP2:
     # load from raw dataset and segmentation
     def load(self):
         self.segments = {}
-        for person in persons:
+        for person in PERSONS:
+            print(' >>> loading ({})...'.format(person), end='', flush=True)
             fpath = self.ds_path / (person + '.dat')
             cache_path = self.cache_dir / 'segments_{}.pkl'.format(person)
 
@@ -135,7 +136,8 @@ class PAMAP2:
 
                 with open(str(save_path), 'wb') as fp:
                     pickle.dump(self.segments[person], fp, protocol=4)
-
+            print('done')
+            
         self.is_loaded_raw_data = True
     
     def framing(self, frame_size:int=256, persons:Optional[list]=None, activities:list=[1, 2, 3, 4, 5], attributes:list=['acc1'], positions:list=['chest'], axes:list=['x', 'y', 'z'], preprocesses:list=[]) -> tuple:
@@ -175,7 +177,7 @@ class PAMAP2:
             self.load()
         
         if persons is None:
-            persons = globals()['persons']
+            persons = globals()['PERSONS']
 
         frame_list = []
         act_label_list = []

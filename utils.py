@@ -46,6 +46,30 @@ def load_raw_data(path):
     df = df.fillna(method='ffill')
     return df
 
+def seek_sensor_data2(seq_df):
+    labels = np.array(seq_df['activity_id'])
+    rshifted_labels = np.roll(labels, 1)
+
+    diff = labels - rshifted_labels
+    diff[0] = 1
+    idxes = np.where(diff != 0)[0]
+
+    segments = []
+    for i in range(1, len(idxes)):
+        segment = seq_df.iloc[idxes[i-1]:idxes[i]]
+        segments += [segment]
+    segments += [seq_df.iloc[idxes[-1]:]]
+
+    # Check segment
+    # flg = True
+    # for seg in segments:
+    #     seg_labels = np.array(seg['activity_id'])
+    #     flg *= np.all(seg_labels == seg_labels[0])
+    # if flg:
+    #     print('OK')
+
+    return segments
+
 def seek_sensor_data(seq_df):
     label = seq_df['activity_id'].iloc[0]
     segments = []
@@ -131,7 +155,7 @@ class PAMAP2:
 
             else:
                 df = load_raw_data(str(fpath))
-                self.segments[person] = seek_sensor_data(df)
+                self.segments[person] = seek_sensor_data2(df)
                 save_path = self.cache_dir / 'segments_{}.pkl'.format(person)
 
                 with open(str(save_path), 'wb') as fp:

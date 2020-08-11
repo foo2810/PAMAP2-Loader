@@ -107,6 +107,8 @@ def framing(segments, frame_size=256, activities=[1, 2, 3, 4, 5], attributes=['a
         seg = seg[columns]
         class_id = act2cid[label]
 
+        if len(seg) < frame_size: continue
+
         seg = np.array(seg)
         for preprocess in preprocesses:
             seg = preprocess(seg)
